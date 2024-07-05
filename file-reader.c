@@ -15,6 +15,9 @@ GtkWidget *search_entry;
 GtkWidget *search_button;
 GtkWidget *result_label;
 GtkWidget *vbox;
+GArray *found_line_numbers = NULL;
+GArray *found_line_contents = NULL;
+gboolean search_performed = FALSE;
 
 gboolean check_file(const char *filename);
 gboolean valid_text_file_selected = FALSE;
@@ -117,11 +120,16 @@ void search_file(GtkWidget *widget, gpointer data) {
     int found_count = 0;
     GString *line_numbers = g_string_new("");
     int numbers_in_current_line = 0;
+    found_line_numbers = g_array_new(FALSE, FALSE, sizeof(int));
+    found_line_contents = g_array_new(FALSE, TRUE, sizeof(char*));
 
     while (fgets(line, sizeof(line), file)) {
         line_number++;
         if (strstr(line, search_text) != NULL) {
             found_count++;
+            g_array_append_val(found_line_numbers, line_number);
+            char *line_copy = g_strdup(line);
+            g_array_append_val(found_line_contents, line_copy);
             if (found_count > 1) {
                 if (numbers_in_current_line == 20) {
                     g_string_append(line_numbers, "\n                : ");
@@ -135,6 +143,7 @@ void search_file(GtkWidget *widget, gpointer data) {
         }
     }
 
+    search_performed = TRUE;
     fclose(file);
 
     GString *result = g_string_new("");
@@ -225,6 +234,48 @@ void on_file_set(GtkFileChooserButton *chooser, gpointer user_data) {
     const char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(chooser));
     if (filename) {
         check_file(filename);
+    }
+}
+
+void show_lines(GtkWidget *widget, gpointer data) {
+    if (!search_performed) {
+        gtk_label_set_text(GTK_LABEL(result_label), "Please perform a search first.");
+        return;
+    }
+
+    GString *result = g_string_new("");
+    g_string_append_printf(result, "Found in %d lines.\n", found_line_numbers->len);
+    g_string_append(result, "Found in lines: \n");
+
+    for (int i = 0; i < found_line_numbers->len; i++) {
+        int line_number = g_array_index(found_line_numbers, int, i);
+        char *line_content = g_array_index(found_line_contents, char*, i);
+
+        //if (i > 0) g_string_append(result, ", ");
+        //g_string_append_printf(result, "%d", line_number);
+
+        if (i < 10) {  // Show content for first 3 lines
+            g_string_append_printf(result, "L%d: %s", line_number, line_content);
+        }
+    }
+
+    if (found_line_numbers->len > 10) {
+        g_string_append(result, "\n(Showing first 10 lines. Click again to see more.)");
+    }
+
+    gtk_label_set_text(GTK_LABEL(result_label), result->str);
+    g_string_free(result, TRUE);
+}
+
+void cleanup() {
+    if (found_line_numbers) {
+        g_array_free(found_line_numbers, TRUE);
+    }
+    if (found_line_contents) {
+        for (int i = 0; i < found_line_contents->len; i++) {
+            g_free(g_array_index(found_line_contents, char*, i));
+        }
+        g_array_free(found_line_contents, TRUE);
     }
 }
 
@@ -359,6 +410,10 @@ int main(int argc, char *argv[]) {
     g_signal_connect(search_button, "clicked", G_CALLBACK(search_file), NULL);
     gtk_box_pack_start(GTK_BOX(vbox), search_button, FALSE, FALSE, 0);
 
+    GtkWidget *show_lines_button = gtk_button_new_with_label("Show Lines");
+    g_signal_connect(show_lines_button, "clicked", G_CALLBACK(show_lines), NULL);
+    gtk_box_pack_start(GTK_BOX(vbox), show_lines_button, FALSE, FALSE, 0);
+
     result_label = gtk_label_new("");
     gtk_box_pack_start(GTK_BOX(vbox), result_label, FALSE, FALSE, 0);
 
@@ -367,6 +422,11 @@ int main(int argc, char *argv[]) {
     g_signal_connect_swapped(window, "destroy", G_CALLBACK(g_string_free), log_buffer);
 
     gtk_widget_show_all(window);
+
+    g_signal_connect(window, "destroy", G_CALLBACK(cleanup), NULL);
+
+    found_line_numbers = g_array_new(FALSE, FALSE, sizeof(int));
+    found_line_contents = g_array_new(FALSE, TRUE, sizeof(char*));
 
     gtk_main();
 
