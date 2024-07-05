@@ -310,12 +310,16 @@ void search_file(GtkWidget *widget, gpointer data) {
     const gchar *start_date_str = gtk_button_get_label(GTK_BUTTON(start_date_button));
     const gchar *end_date_str = gtk_button_get_label(GTK_BUTTON(end_date_button));
 
-    int start_year, start_month, start_day;
-    int end_year, end_month, end_day;
+    int start_year = 0, start_month = 0, start_day = 0;
+    int end_year = 9999, end_month = 12, end_day = 31;  // Set to far future by default
     int use_date_filter = 0;
 
-    if (strcmp(start_date_str, "Select Start Date") != 0 && strcmp(end_date_str, "Select End Date") != 0) {
+    if (strcmp(start_date_str, "Select Start Date") != 0) {
         sscanf(start_date_str, "%d-%d-%d", &start_year, &start_month, &start_day);
+        use_date_filter = 1;
+    }
+
+    if (strcmp(end_date_str, "Select End Date") != 0) {
         sscanf(end_date_str, "%d-%d-%d", &end_year, &end_month, &end_day);
         use_date_filter = 1;
     }
