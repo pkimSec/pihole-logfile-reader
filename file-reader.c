@@ -306,6 +306,7 @@ void search_file(GtkWidget *widget, gpointer data) {
     const gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file_chooser));
     const gchar *search_text = gtk_entry_get_text(GTK_ENTRY(search_entry));
     const gchar *filter_text = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(filter_combo));
+
     const gchar *start_date_str = gtk_button_get_label(GTK_BUTTON(start_date_button));
     const gchar *end_date_str = gtk_button_get_label(GTK_BUTTON(end_date_button));
 
@@ -319,19 +320,21 @@ void search_file(GtkWidget *widget, gpointer data) {
         use_date_filter = 1;
     }
 
-    add_log_entry(g_strdup_printf("Searched in file for String \"%s\" with filter \"%s\"", search_text, filter_text));
+    add_log_entry(g_strdup_printf("Searched in file for String \"%s\" with filter \"%s\" and date range %s to %s", 
+                                  search_text, filter_text, start_date_str, end_date_str));
 
     if (filename == NULL) {
         gtk_label_set_text(GTK_LABEL(result_label), "Please select a file.");
         return;
     }
 
-    if (strlen(search_text) == 0 && strcmp(filter_text, "No filter") == 0) {
-        gtk_label_set_text(GTK_LABEL(result_label), "Please enter search text or select a filter.");
+    // Check if we should perform a search or just display entries within the date range
+    gboolean perform_text_search = (strlen(search_text) > 0 || strcmp(filter_text, "No filter") != 0);
+
+    if (!perform_text_search && !use_date_filter) {
+        gtk_label_set_text(GTK_LABEL(result_label), "Please enter search text, select a filter, or specify a date range.");
         return;
     }
-
-
 
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
@@ -351,13 +354,17 @@ void search_file(GtkWidget *widget, gpointer data) {
         line_number++;
         gboolean line_matches = FALSE;
 
-        if (strcmp(filter_text, "No filter") == 0) {
-            line_matches = (strstr(line, search_text) != NULL);
+        if (perform_text_search) {
+            if (strcmp(filter_text, "No filter") == 0) {
+                line_matches = (strstr(line, search_text) != NULL);
+            } else {
+                line_matches = (strstr(line, search_text) != NULL && strstr(line, filter_text) != NULL);
+            }
         } else {
-            line_matches = (strstr(line, search_text) != NULL && strstr(line, filter_text) != NULL);
+            line_matches = TRUE;  // Match all lines if no text search is being performed
         }
 
-        if (line_matches && use_date_filter) {
+        if (use_date_filter) {
             int year, month, day;
             if (parse_date(line, &year, &month, &day)) {
                 if (compare_dates(year, month, day, start_year, start_month, start_day) >= 0 &&
@@ -366,6 +373,8 @@ void search_file(GtkWidget *widget, gpointer data) {
                 } else {
                     line_matches = FALSE;
                 }
+            } else {
+                line_matches = FALSE;  // If we can't parse the date, don't include the line
             }
         }
 
@@ -392,13 +401,13 @@ void search_file(GtkWidget *widget, gpointer data) {
 
     GString *result = g_string_new("");
     if (found_count > 0) {
-        g_string_append_printf(result, "Found %d times\n", found_count);
-        g_string_append_printf(result, "Found in lines: %s", line_numbers->str);
+        g_string_append_printf(result, "Found %d matching entries\n", found_count);
+        g_string_append_printf(result, "Matching entries in lines: %s", line_numbers->str);
         gtk_label_set_text(GTK_LABEL(result_label), result->str);
-        add_log_entry(g_strdup_printf("Found %d times", found_count));
-        add_log_entry(g_strdup_printf("Found in lines: %s", line_numbers->str));
+        add_log_entry(g_strdup_printf("Found %d matching entries", found_count));
+        add_log_entry(g_strdup_printf("Matching entries in lines: %s", line_numbers->str));
     } else {
-        gtk_label_set_text(GTK_LABEL(result_label), "Text not found in the file.");
+        gtk_label_set_text(GTK_LABEL(result_label), "No matching entries found.");
     }
 
     g_string_free(result, TRUE);
@@ -429,7 +438,7 @@ void show_lines(GtkWidget *widget, gpointer data) {
             g_string_append_printf(result, "L%d: %s", line_number, line_content);
         }
 
-        if ((i >= 10) & (found_line_numbers->len >= 10) & (lines_displayed == TRUE) & (lines_full_displayed == FALSE)) {
+        if ((i >= 10) & (lines_displayed == TRUE)) {
             g_string_append_printf(result, "L%d: %s", line_number, line_content);
             displaying_full = TRUE;
         }
