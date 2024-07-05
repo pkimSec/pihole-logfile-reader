@@ -464,34 +464,49 @@ void show_lines(GtkWidget *widget, gpointer data) {
     g_string_free(result, TRUE);
 }
 
+// Function to reset filters
+void reset_filters(GtkWidget *widget, gpointer data) {
+    gtk_entry_set_text(GTK_ENTRY(search_entry), "");
+    gtk_combo_box_set_active(GTK_COMBO_BOX(filter_combo), 0);
+    gtk_button_set_label(GTK_BUTTON(start_date_button), "Select Start Date");
+    gtk_button_set_label(GTK_BUTTON(end_date_button), "Select End Date");
+    gtk_label_set_text(GTK_LABEL(result_label), "Filters have been reset.");
+}
+
 // ---------- MAIN / GUI ----------
 GtkWidget* create_menu_bar() {
     GtkWidget *menu_bar;
     GtkWidget *file_menu;
     GtkWidget *log_menu;
     GtkWidget *help_menu;
+    GtkWidget *filters_menu;
     GtkWidget *file_mi;
     GtkWidget *log_mi;
     GtkWidget *help_mi;
+    GtkWidget *filters_mi;
     GtkWidget *open_mi;
     GtkWidget *search_mi;
     GtkWidget *quit_mi;
     GtkWidget *create_log_mi;
     GtkWidget *open_log_mi;
     GtkWidget *help_usage_mi;
+    GtkWidget *reset_filters_mi;
 
     menu_bar = gtk_menu_bar_new();
 
     file_menu = gtk_menu_new();
     log_menu = gtk_menu_new();
+    filters_menu = gtk_menu_new();
     help_menu = gtk_menu_new();
 
     file_mi = gtk_menu_item_new_with_label("File");
     log_mi = gtk_menu_item_new_with_label("Log");
+    filters_mi = gtk_menu_item_new_with_label("Filters");
     help_mi = gtk_menu_item_new_with_label("Help");
-
+    
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(file_mi), file_menu);
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(log_mi), log_menu);
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(filters_mi), filters_menu);
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(help_mi), help_menu);
 
     open_mi = gtk_menu_item_new_with_label("Open");
@@ -508,12 +523,15 @@ GtkWidget* create_menu_bar() {
     gtk_menu_shell_append(GTK_MENU_SHELL(log_menu), create_log_mi);
     gtk_menu_shell_append(GTK_MENU_SHELL(log_menu), open_log_mi);
 
-    help_usage_mi = gtk_menu_item_new_with_label("Usage");
+    reset_filters_mi = gtk_menu_item_new_with_label("Reset");
+    gtk_menu_shell_append(GTK_MENU_SHELL(filters_menu), reset_filters_mi);
 
+    help_usage_mi = gtk_menu_item_new_with_label("Usage");
     gtk_menu_shell_append(GTK_MENU_SHELL(help_menu), help_usage_mi);
 
     gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), file_mi);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), log_mi);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), filters_mi);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), help_mi);
 
     g_signal_connect(G_OBJECT(open_mi), "activate", G_CALLBACK(open_file), NULL);
@@ -521,6 +539,7 @@ GtkWidget* create_menu_bar() {
     g_signal_connect(G_OBJECT(quit_mi), "activate", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(G_OBJECT(create_log_mi), "activate", G_CALLBACK(create_log_file), NULL);
     g_signal_connect(G_OBJECT(open_log_mi), "activate", G_CALLBACK(open_log), NULL);
+    g_signal_connect(G_OBJECT(reset_filters_mi), "activate", G_CALLBACK(reset_filters), NULL);
     g_signal_connect(G_OBJECT(help_usage_mi), "activate", G_CALLBACK(help_usage), NULL);
 
     return menu_bar;
