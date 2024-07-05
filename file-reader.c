@@ -15,6 +15,7 @@ GtkWidget *search_entry;
 GtkWidget *search_button;
 GtkWidget *result_label;
 GtkWidget *vbox;
+GtkWidget *filter_combo;
 GArray *found_line_numbers = NULL;
 GArray *found_line_contents = NULL;
 gboolean search_performed = FALSE;
@@ -99,16 +100,17 @@ void search_file(GtkWidget *widget, gpointer data) {
 
     const gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file_chooser));
     const gchar *search_text = gtk_entry_get_text(GTK_ENTRY(search_entry));
+    const gchar *filter_text = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(filter_combo));
 
-    add_log_entry(g_strdup_printf("Searched in file for String \"%s\"", search_text));
+    add_log_entry(g_strdup_printf("Searched in file for String \"%s\" with filter \"%s\"", search_text, filter_text));
 
     if (filename == NULL) {
         gtk_label_set_text(GTK_LABEL(result_label), "Please select a file.");
         return;
     }
 
-    if (strlen(search_text) == 0) {
-        gtk_label_set_text(GTK_LABEL(result_label), "Please enter search text.");
+    if (strlen(search_text) == 0 && strcmp(filter_text, "No filter") == 0) {
+        gtk_label_set_text(GTK_LABEL(result_label), "Please enter search text or select a filter.");
         return;
     }
 
@@ -128,7 +130,15 @@ void search_file(GtkWidget *widget, gpointer data) {
 
     while (fgets(line, sizeof(line), file)) {
         line_number++;
-        if (strstr(line, search_text) != NULL) {
+        gboolean line_matches = FALSE;
+
+        if (strcmp(filter_text, "No filter") == 0) {
+            line_matches = (strstr(line, search_text) != NULL);
+        } else {
+            line_matches = (strstr(line, search_text) != NULL && strstr(line, filter_text) != NULL);
+        }
+
+        if (line_matches) {
             found_count++;
             g_array_append_val(found_line_numbers, line_number);
             char *line_copy = g_strdup(line);
@@ -165,6 +175,8 @@ void search_file(GtkWidget *widget, gpointer data) {
 
     lines_displayed = FALSE;
     lines_full_displayed = FALSE;
+
+    g_free((gchar*)filter_text);
 }
 
 
@@ -421,6 +433,13 @@ int main(int argc, char *argv[]) {
     search_entry = gtk_entry_new();
     gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "Enter search text");
     gtk_box_pack_start(GTK_BOX(vbox), search_entry, FALSE, FALSE, 0);
+
+    filter_combo = gtk_combo_box_text_new();
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(filter_combo), "No filter");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(filter_combo), "gravity blocked");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(filter_combo), "reply");
+    gtk_combo_box_set_active(GTK_COMBO_BOX(filter_combo), 0);
+    gtk_box_pack_start(GTK_BOX(vbox), filter_combo, FALSE, FALSE, 0);
 
     search_button = gtk_button_new_with_label("Search in File");
     g_signal_connect(search_button, "clicked", G_CALLBACK(search_file), NULL);
