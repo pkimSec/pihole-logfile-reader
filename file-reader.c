@@ -18,6 +18,9 @@ GtkWidget *vbox;
 GArray *found_line_numbers = NULL;
 GArray *found_line_contents = NULL;
 gboolean search_performed = FALSE;
+gboolean lines_displayed = FALSE;
+gboolean lines_full_displayed = FALSE;
+gboolean displaying_full = FALSE;
 
 gboolean check_file(const char *filename);
 gboolean valid_text_file_selected = FALSE;
@@ -159,6 +162,9 @@ void search_file(GtkWidget *widget, gpointer data) {
 
     g_string_free(result, TRUE);
     g_string_free(line_numbers, TRUE);
+
+    lines_displayed = FALSE;
+    lines_full_displayed = FALSE;
 }
 
 
@@ -251,15 +257,25 @@ void show_lines(GtkWidget *widget, gpointer data) {
         int line_number = g_array_index(found_line_numbers, int, i);
         char *line_content = g_array_index(found_line_contents, char*, i);
 
-        //if (i > 0) g_string_append(result, ", ");
-        //g_string_append_printf(result, "%d", line_number);
-
-        if (i < 10) {  // Show content for first 3 lines
+        if (i < 10) {  //Erste 10 Zeilen
             g_string_append_printf(result, "L%d: %s", line_number, line_content);
         }
+
+        if ((i >= 10) & (found_line_numbers->len >= 10) & (lines_displayed == TRUE) & (lines_full_displayed == FALSE)) {
+            g_string_append_printf(result, "L%d: %s", line_number, line_content);
+            displaying_full = TRUE;
+        }
+
     }
 
-    if (found_line_numbers->len > 10) {
+    if (lines_displayed == FALSE) {
+        lines_displayed = TRUE;
+    }
+    if ((lines_full_displayed == FALSE) & (displaying_full == TRUE)) {
+        lines_full_displayed = TRUE;
+    }
+
+    if ((found_line_numbers->len > 10) & (lines_full_displayed == FALSE)) {
         g_string_append(result, "\n(Showing first 10 lines. Click again to see more.)");
     }
 
