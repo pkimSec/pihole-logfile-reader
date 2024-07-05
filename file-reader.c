@@ -29,16 +29,33 @@ gboolean check_file(const char *filename);
 gboolean valid_text_file_selected = FALSE;
 
 // ---------- INIT ----------
-void help_usage(GtkWidget *widget, gpointer data) {
+/***
+ *     ____  __  _  _   __   __    ____    __     __    ___  ____  ____   __   ____  ____  ____ 
+ *    (  _ \(  )/ )( \ /  \ (  )  (  __)  (  )   /  \  / __)(  _ \(  __) / _\ (    \(  __)(  _ \
+ *     ) __/ )( ) __ ((  O )/ (_/\ ) _)   / (_/\(  O )( (_ \ )   / ) _) /    \ ) D ( ) _)  )   /
+ *    (__)  (__)\_)(_/ \__/ \____/(____)  \____/ \__/  \___/(__\_)(____)\_/\_/(____/(____)(__\_)
+ */
+void help_info(GtkWidget *widget, gpointer data) {
     GString *result = g_string_new("");
-    g_string_append_printf(result, "Software to open text files and search for Strings in the textfiles. \n");
-    g_string_append_printf(result, "File -> Open (or clicking the top button) opens the File Selector.  \n");
-    g_string_append_printf(result, "File -> Search (or clicking the search button) searches for the string in the text field. \n");
-    g_string_append_printf(result, "File -> Quit closes the software. \n");
-    g_string_append_printf(result, "Log -> Create Log creates a logfile in the subfolder Logs (Logs are also created on exit). \n");
-    g_string_append_printf(result, "Log -> Open Log displays the contents of the selected Log file.");
-    g_string_append_printf(result, "Help -> Usage displays this help menu.");
-
+    g_string_append_printf(result, "PiHole LogReader\n");
+        g_string_append_printf(result, "Software to open text files and search for Strings with filter options in the textfiles. \n");
+    g_string_append_printf(result, "\n");
+    g_string_append_printf(result, "Menu Bar\n");
+    g_string_append_printf(result, "File -> Open          | (Clicking the top button) Opens the File Selector.  \n");
+    g_string_append_printf(result, "File -> Search        | (Clicking the 'Search in File' button) Searches in the Logfile with given Filters. \n");
+    g_string_append_printf(result, "File -> Quit           | Closes the software. \n");
+    g_string_append_printf(result, "Log -> Create Log  | Creates a logfile in the subfolder 'Logs' (logs are also created on exit). \n");
+    g_string_append_printf(result, "Log -> Open Log   | Displays the contents of the selected logfile. \n");
+    g_string_append_printf(result, "Filters -> Reset     | Resets the filters to default value for a new search. \n");
+    g_string_append_printf(result, "\n");
+    g_string_append_printf(result, "GUI \n");
+    g_string_append_printf(result, "Top Button                   | Opens the File Selector.\n");
+    g_string_append_printf(result, "Enter Search Text          | Search for specific String in LogFile. \n");
+    g_string_append_printf(result, "Filter Dropdown Menu  | Only show results from specified type. \n");
+    g_string_append_printf(result, "Select Start Date           | Only show results on or after specified date. \n");
+    g_string_append_printf(result, "Select End Date             | Only show results on or before specified date. \n");
+    g_string_append_printf(result, "Search in File                | Searches in the Logfile with given Filters. \n");
+    g_string_append_printf(result, "Show Lines                   | Clicking 1x shows first 10 Lines of result, Clicking 2x shows all results. \n");
     gtk_label_set_text(GTK_LABEL(result_label), result->str);
     g_string_free(result, TRUE); 
 }
@@ -488,7 +505,7 @@ GtkWidget* create_menu_bar() {
     GtkWidget *quit_mi;
     GtkWidget *create_log_mi;
     GtkWidget *open_log_mi;
-    GtkWidget *help_usage_mi;
+    GtkWidget *help_help_mi;
     GtkWidget *reset_filters_mi;
 
     menu_bar = gtk_menu_bar_new();
@@ -522,23 +539,23 @@ GtkWidget* create_menu_bar() {
     gtk_menu_shell_append(GTK_MENU_SHELL(log_menu), create_log_mi);
     gtk_menu_shell_append(GTK_MENU_SHELL(log_menu), open_log_mi);
 
-    help_usage_mi = gtk_menu_item_new_with_label("Usage");
-    gtk_menu_shell_append(GTK_MENU_SHELL(help_menu), help_usage_mi);
+    help_help_mi = gtk_menu_item_new_with_label("Help");
+    gtk_menu_shell_append(GTK_MENU_SHELL(help_menu), help_help_mi);
 
     reset_filters_mi = gtk_menu_item_new_with_label("Reset");
     gtk_menu_shell_append(GTK_MENU_SHELL(filters_menu), reset_filters_mi);
 
     gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), file_mi);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), log_mi);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), help_mi);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), filters_mi);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), help_mi);
 
     g_signal_connect(G_OBJECT(open_mi), "activate", G_CALLBACK(open_file), NULL);
     g_signal_connect(G_OBJECT(search_mi), "activate", G_CALLBACK(search_file), NULL);
     g_signal_connect(G_OBJECT(quit_mi), "activate", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(G_OBJECT(create_log_mi), "activate", G_CALLBACK(create_log_file), NULL);
     g_signal_connect(G_OBJECT(open_log_mi), "activate", G_CALLBACK(open_log), NULL);
-    g_signal_connect(G_OBJECT(help_usage_mi), "activate", G_CALLBACK(help_usage), NULL);
+    g_signal_connect(G_OBJECT(help_help_mi), "activate", G_CALLBACK(help_info), NULL);
     g_signal_connect(G_OBJECT(reset_filters_mi), "activate", G_CALLBACK(reset_filters), NULL);
 
     return menu_bar;
