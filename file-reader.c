@@ -348,14 +348,6 @@ void search_file(GtkWidget *widget, gpointer data) {
         return;
     }
 
-    // Check if we should perform a search or just display entries within the date range
-    gboolean perform_text_search = (strlen(search_text) > 0 || strcmp(filter_text, "No filter") != 0);
-
-    if (!perform_text_search && !use_date_filter) {
-        gtk_label_set_text(GTK_LABEL(result_label), "Please enter search text, select a filter, or specify a date range.");
-        return;
-    }
-
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
         gtk_label_set_text(GTK_LABEL(result_label), "Error: Could not open file.");
@@ -370,18 +362,20 @@ void search_file(GtkWidget *widget, gpointer data) {
     found_line_numbers = g_array_new(FALSE, FALSE, sizeof(int));
     found_line_contents = g_array_new(FALSE, TRUE, sizeof(char*));
 
+    gboolean no_text_criteria = (strlen(search_text) == 0 && strcmp(filter_text, "No filter") == 0);
+
     while (fgets(line, sizeof(line), file)) {
         line_number++;
-        gboolean line_matches = FALSE;
+        gboolean line_matches = TRUE;  // Assume the line matches by default
 
-        if (perform_text_search) {
-            if (strcmp(filter_text, "No filter") == 0) {
+        if (!no_text_criteria) {
+            if (strlen(search_text) > 0) {
                 line_matches = (strstr(line, search_text) != NULL);
-            } else {
-                line_matches = (strstr(line, search_text) != NULL && strstr(line, filter_text) != NULL);
             }
-        } else {
-            line_matches = TRUE;  // Match all lines if no text search is being performed
+            
+            if (strcmp(filter_text, "No filter") != 0) {
+                line_matches = line_matches && (strstr(line, filter_text) != NULL);
+            }
         }
 
         if (use_date_filter) {
@@ -421,11 +415,20 @@ void search_file(GtkWidget *widget, gpointer data) {
 
     GString *result = g_string_new("");
     if (found_count > 0) {
-        g_string_append_printf(result, "Found %d matching entries\n", found_count);
-        g_string_append_printf(result, "Matching entries in lines: %s", line_numbers->str);
+        if (no_text_criteria && !use_date_filter) {
+            g_string_append_printf(result, "Showing all %d lines in the file\n", found_count);
+        } else if (no_text_criteria && use_date_filter) {
+            g_string_append_printf(result, "Found %d entries within the specified date range\n", found_count);
+            g_string_append_printf(result, "Matching entries in lines: %s", line_numbers->str);
+        } else {
+            g_string_append_printf(result, "Found %d matching entries\n", found_count);
+            g_string_append_printf(result, "Matching entries in lines: %s", line_numbers->str);
+        }
         gtk_label_set_text(GTK_LABEL(result_label), result->str);
         add_log_entry(g_strdup_printf("Found %d matching entries", found_count));
-        add_log_entry(g_strdup_printf("Matching entries in lines: %s", line_numbers->str));
+        if (!no_text_criteria || use_date_filter) {
+            add_log_entry(g_strdup_printf("Matching entries in lines: %s", line_numbers->str));
+        }
     } else {
         gtk_label_set_text(GTK_LABEL(result_label), "No matching entries found.");
     }
