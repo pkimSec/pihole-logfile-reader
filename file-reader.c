@@ -30,7 +30,6 @@ gboolean valid_text_file_selected = FALSE;
 
 // ---------- INIT ----------
 void help_usage(GtkWidget *widget, gpointer data) {
-
     GString *result = g_string_new("");
     g_string_append_printf(result, "Software to open text files and search for Strings in the textfiles. \n");
     g_string_append_printf(result, "File -> Open (or clicking the top button) opens the File Selector.  \n");
@@ -496,18 +495,18 @@ GtkWidget* create_menu_bar() {
 
     file_menu = gtk_menu_new();
     log_menu = gtk_menu_new();
-    filters_menu = gtk_menu_new();
     help_menu = gtk_menu_new();
+    filters_menu = gtk_menu_new();
 
     file_mi = gtk_menu_item_new_with_label("File");
     log_mi = gtk_menu_item_new_with_label("Log");
-    filters_mi = gtk_menu_item_new_with_label("Filters");
     help_mi = gtk_menu_item_new_with_label("Help");
-    
+    filters_mi = gtk_menu_item_new_with_label("Filters");
+
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(file_mi), file_menu);
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(log_mi), log_menu);
-    gtk_menu_item_set_submenu(GTK_MENU_ITEM(filters_mi), filters_menu);
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(help_mi), help_menu);
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(filters_mi), filters_menu);
 
     open_mi = gtk_menu_item_new_with_label("Open");
     search_mi = gtk_menu_item_new_with_label("Search");
@@ -523,24 +522,24 @@ GtkWidget* create_menu_bar() {
     gtk_menu_shell_append(GTK_MENU_SHELL(log_menu), create_log_mi);
     gtk_menu_shell_append(GTK_MENU_SHELL(log_menu), open_log_mi);
 
-    reset_filters_mi = gtk_menu_item_new_with_label("Reset");
-    gtk_menu_shell_append(GTK_MENU_SHELL(filters_menu), reset_filters_mi);
-
     help_usage_mi = gtk_menu_item_new_with_label("Usage");
     gtk_menu_shell_append(GTK_MENU_SHELL(help_menu), help_usage_mi);
 
+    reset_filters_mi = gtk_menu_item_new_with_label("Reset");
+    gtk_menu_shell_append(GTK_MENU_SHELL(filters_menu), reset_filters_mi);
+
     gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), file_mi);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), log_mi);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), filters_mi);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), help_mi);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), filters_mi);
 
     g_signal_connect(G_OBJECT(open_mi), "activate", G_CALLBACK(open_file), NULL);
     g_signal_connect(G_OBJECT(search_mi), "activate", G_CALLBACK(search_file), NULL);
     g_signal_connect(G_OBJECT(quit_mi), "activate", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(G_OBJECT(create_log_mi), "activate", G_CALLBACK(create_log_file), NULL);
     g_signal_connect(G_OBJECT(open_log_mi), "activate", G_CALLBACK(open_log), NULL);
-    g_signal_connect(G_OBJECT(reset_filters_mi), "activate", G_CALLBACK(reset_filters), NULL);
     g_signal_connect(G_OBJECT(help_usage_mi), "activate", G_CALLBACK(help_usage), NULL);
+    g_signal_connect(G_OBJECT(reset_filters_mi), "activate", G_CALLBACK(reset_filters), NULL);
 
     return menu_bar;
 }
@@ -564,6 +563,11 @@ int main(int argc, char *argv[]) {
     g_signal_connect(G_OBJECT(file_chooser), "file-set", G_CALLBACK(on_file_set), NULL);
     gtk_box_pack_start(GTK_BOX(vbox), file_chooser, FALSE, FALSE, 0);
 
+    // Add spacing between file chooser and text entry
+    GtkWidget *spacing1 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 20);
+    gtk_widget_set_size_request(spacing1, -1, 20);
+    gtk_box_pack_start(GTK_BOX(vbox), spacing1, FALSE, FALSE, 0);
+
     search_entry = gtk_entry_new();
     gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "Enter search text");
     gtk_box_pack_start(GTK_BOX(vbox), search_entry, FALSE, FALSE, 0);
@@ -582,6 +586,11 @@ int main(int argc, char *argv[]) {
     end_date_button = gtk_button_new_with_label("Select End Date");
     g_signal_connect(end_date_button, "clicked", G_CALLBACK(show_calendar), GINT_TO_POINTER(1));
     gtk_box_pack_start(GTK_BOX(vbox), end_date_button, FALSE, FALSE, 0);
+
+    // Add spacing between end date button and search button
+    GtkWidget *spacing2 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 20);
+    gtk_widget_set_size_request(spacing2, -1, 20);
+    gtk_box_pack_start(GTK_BOX(vbox), spacing2, FALSE, FALSE, 0);
 
     search_button = gtk_button_new_with_label("Search in File");
     g_signal_connect(search_button, "clicked", G_CALLBACK(search_file), NULL);
