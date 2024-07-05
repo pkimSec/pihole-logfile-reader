@@ -1,23 +1,23 @@
 Sep 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
 Sep 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
+Jan 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
 Sep 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
 Sep 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
 Sep 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
-Sep 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
+Feb 21 00:01:05 dnsmasq[676]: gravity blocked metrics.icloud.com is NODATA
 Sep 21 00:01:05 dnsmasq[676]: gravity blocked metrics.icloud.com is NODATA
 Sep 21 00:01:05 dnsmasq[676]: gravity blocked metrics.icloud.com is NODATA
 Sep 21 00:01:05 dnsmasq[676]: gravity blocked metrics.icloud.com is NODATA
-Sep 21 00:01:05 dnsmasq[676]: gravity blocked metrics.icloud.com is NODATA
-Sep 21 00:01:05 dnsmasq[676]: gravity blocked metrics.icloud.com is NODATA
+May 21 00:01:05 dnsmasq[676]: gravity blocked metrics.icloud.com is NODATA
 Sep 21 00:01:05 dnsmasq[676]: gravity blocked google.com is NODATA
 Sep 21 00:01:05 dnsmasq[676]: gravity blocked google.com is NODATA
-Sep 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
-Sep 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
+Nov 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
+Nov 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
 Sep 21 00:00:12 dnsmasq[676]: reply metrics.icloud.com is 1.2.3.4
 Sep 21 00:00:12 dnsmasq[676]: reply metrics.icloud.com is 1.2.3.4
 Sep 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
+Dec 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
 Sep 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
 Sep 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
-Sep 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
-Sep 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
-Sep 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
+Jul 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4
+Jun 21 00:00:12 dnsmasq[676]: reply clients.l.google.com is 1.2.3.4

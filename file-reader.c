@@ -6,9 +6,9 @@
 #include <time.h>
 #include <sys/stat.h>
 
-GString *log_buffer;
-
+// ---------- VARIABLES -----------
 /* Globale Variablen für GUI Elemente */
+GString *log_buffer;
 GtkWidget *window;
 GtkWidget *file_chooser;
 GtkWidget *search_entry;
@@ -16,6 +16,8 @@ GtkWidget *search_button;
 GtkWidget *result_label;
 GtkWidget *vbox;
 GtkWidget *filter_combo;
+GtkWidget *start_date_button;
+GtkWidget *end_date_button;
 GArray *found_line_numbers = NULL;
 GArray *found_line_contents = NULL;
 gboolean search_performed = FALSE;
@@ -26,6 +28,35 @@ gboolean displaying_full = FALSE;
 gboolean check_file(const char *filename);
 gboolean valid_text_file_selected = FALSE;
 
+// ---------- INIT ----------
+void help_usage(GtkWidget *widget, gpointer data) {
+
+    GString *result = g_string_new("");
+    g_string_append_printf(result, "Software to open text files and search for Strings in the textfiles. \n");
+    g_string_append_printf(result, "File -> Open (or clicking the top button) opens the File Selector.  \n");
+    g_string_append_printf(result, "File -> Search (or clicking the search button) searches for the string in the text field. \n");
+    g_string_append_printf(result, "File -> Quit closes the software. \n");
+    g_string_append_printf(result, "Log -> Create Log creates a logfile in the subfolder Logs (Logs are also created on exit). \n");
+    g_string_append_printf(result, "Log -> Open Log displays the contents of the selected Log file.");
+    g_string_append_printf(result, "Help -> Usage displays this help menu.");
+
+    gtk_label_set_text(GTK_LABEL(result_label), result->str);
+    g_string_free(result, TRUE); 
+}
+
+void cleanup() {
+    if (found_line_numbers) {
+        g_array_free(found_line_numbers, TRUE);
+    }
+    if (found_line_contents) {
+        for (int i = 0; i < found_line_contents->len; i++) {
+            g_free(g_array_index(found_line_contents, char*, i));
+        }
+        g_array_free(found_line_contents, TRUE);
+    }
+}
+
+// ---------- LOG OPERATIONS ----------
 void init_log() {
     log_buffer = g_string_new("");
     time_t now;
@@ -75,112 +106,121 @@ void create_log_file() {
     }
 }
 
+void open_log(GtkWidget *widget, gpointer data) {
+    GtkWidget *dialog;
+    dialog = gtk_file_chooser_dialog_new("Open Log File",
+                                         GTK_WINDOW(window),
+                                         GTK_FILE_CHOOSER_ACTION_OPEN,
+                                         "_Cancel", GTK_RESPONSE_CANCEL,
+                                         "_Open", GTK_RESPONSE_ACCEPT,
+                                         NULL);
 
-void help_usage(GtkWidget *widget, gpointer data) {
+    gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), "Logs");
+    gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog), gtk_file_filter_new());
+    GtkFileFilter *filter = gtk_file_filter_new();
+    gtk_file_filter_add_pattern(filter, "*.log");
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
-    GString *result = g_string_new("");
-    g_string_append_printf(result, "Software to open text files and search for Strings in the textfiles. \n");
-    g_string_append_printf(result, "File -> Open (or clicking the top button) opens the File Selector.  \n");
-    g_string_append_printf(result, "File -> Search (or clicking the search button) searches for the string in the text field. \n");
-    g_string_append_printf(result, "File -> Quit closes the software. \n");
-    g_string_append_printf(result, "Log -> Create Log creates a logfile in the subfolder Logs (Logs are also created on exit). \n");
-    g_string_append_printf(result, "Log -> Open Log displays the contents of the selected Log file.");
-    g_string_append_printf(result, "Help -> Usage displays this help menu.");
+    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+        char *filename;
+        filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+        
+        FILE *file = fopen(filename, "r");
+        if (file) {
+            fseek(file, 0, SEEK_END);
+            long fsize = ftell(file);
+            fseek(file, 0, SEEK_SET);
 
-    gtk_label_set_text(GTK_LABEL(result_label), result->str);
-    g_string_free(result, TRUE); 
-}
+            char *content = malloc(fsize + 1);
+            fread(content, 1, fsize, file);
+            fclose(file);
 
-/* Funktion die bei Verwenden des Search-Buttons aufgerufen wird */
-void search_file(GtkWidget *widget, gpointer data) {
-    if (!valid_text_file_selected) {
-        gtk_label_set_text(GTK_LABEL(result_label), "Please select a valid text file before searching.");
-        return;
-    }
+            content[fsize] = 0;
 
-    const gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file_chooser));
-    const gchar *search_text = gtk_entry_get_text(GTK_ENTRY(search_entry));
-    const gchar *filter_text = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(filter_combo));
-
-    add_log_entry(g_strdup_printf("Searched in file for String \"%s\" with filter \"%s\"", search_text, filter_text));
-
-    if (filename == NULL) {
-        gtk_label_set_text(GTK_LABEL(result_label), "Please select a file.");
-        return;
-    }
-
-    if (strlen(search_text) == 0 && strcmp(filter_text, "No filter") == 0) {
-        gtk_label_set_text(GTK_LABEL(result_label), "Please enter search text or select a filter.");
-        return;
-    }
-
-    FILE *file = fopen(filename, "r");
-    if (file == NULL) {
-        gtk_label_set_text(GTK_LABEL(result_label), "Error: Could not open file.");
-        return;
-    }
-
-    char line[1024];
-    int line_number = 0;
-    int found_count = 0;
-    GString *line_numbers = g_string_new("");
-    int numbers_in_current_line = 0;
-    found_line_numbers = g_array_new(FALSE, FALSE, sizeof(int));
-    found_line_contents = g_array_new(FALSE, TRUE, sizeof(char*));
-
-    while (fgets(line, sizeof(line), file)) {
-        line_number++;
-        gboolean line_matches = FALSE;
-
-        if (strcmp(filter_text, "No filter") == 0) {
-            line_matches = (strstr(line, search_text) != NULL);
+            gtk_label_set_text(GTK_LABEL(result_label), content);
+            free(content);
         } else {
-            line_matches = (strstr(line, search_text) != NULL && strstr(line, filter_text) != NULL);
+            gtk_label_set_text(GTK_LABEL(result_label), "Error: Could not open log file.");
         }
-
-        if (line_matches) {
-            found_count++;
-            g_array_append_val(found_line_numbers, line_number);
-            char *line_copy = g_strdup(line);
-            g_array_append_val(found_line_contents, line_copy);
-            if (found_count > 1) {
-                if (numbers_in_current_line == 20) {
-                    g_string_append(line_numbers, "\n                : ");
-                    numbers_in_current_line = 0;
-                } else {
-                    g_string_append(line_numbers, ", ");
-                }
-            }
-            g_string_append_printf(line_numbers, "%d", line_number);
-            numbers_in_current_line++;
-        }
+        
+        g_free(filename);
     }
 
-    search_performed = TRUE;
-    fclose(file);
-
-    GString *result = g_string_new("");
-    if (found_count > 0) {
-        g_string_append_printf(result, "Found %d times\n", found_count);
-        g_string_append_printf(result, "Found in lines: %s", line_numbers->str);
-        gtk_label_set_text(GTK_LABEL(result_label), result->str);
-        add_log_entry(g_strdup_printf("Found %d times", found_count));
-        add_log_entry(g_strdup_printf("Found in lines: %s", line_numbers->str));
-    } else {
-        gtk_label_set_text(GTK_LABEL(result_label), "Text not found in the file.");
-    }
-
-    g_string_free(result, TRUE);
-    g_string_free(line_numbers, TRUE);
-
-    lines_displayed = FALSE;
-    lines_full_displayed = FALSE;
-
-    g_free((gchar*)filter_text);
+    gtk_widget_destroy(dialog);
 }
 
+// ---------- FUNCTIONS ----------
+int parse_date(const char *date_str, int *year, int *month, int *day) {
+    static const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    char month_str[4];
+    int i;
 
+    if (sscanf(date_str, "%3s %d", month_str, day) != 2) {
+        return 0;
+    }
 
+    for (i = 0; i < 12; i++) {
+        if (strcmp(month_str, months[i]) == 0) {
+            *month = i + 1;
+            break;
+        }
+    }
+
+    if (i == 12) {
+        return 0;
+    }
+
+    time_t now = time(NULL);
+    struct tm *tm_now = localtime(&now);
+    *year = tm_now->tm_year + 1900;
+
+    return 1;
+}
+
+int compare_dates(int year1, int month1, int day1, int year2, int month2, int day2) {
+    if (year1 < year2) return -1;
+    if (year1 > year2) return 1;
+    if (month1 < month2) return -1;
+    if (month1 > month2) return 1;
+    if (day1 < day2) return -1;
+    if (day1 > day2) return 1;
+    return 0;
+}
+
+void show_calendar(GtkWidget *widget, gpointer data) {
+    GtkWidget *dialog;
+    GtkWidget *calendar;
+    int is_end_date = GPOINTER_TO_INT(data);
+
+    dialog = gtk_dialog_new_with_buttons("Select Date",
+                                         GTK_WINDOW(window),
+                                         GTK_DIALOG_MODAL,
+                                         "_OK", GTK_RESPONSE_OK,
+                                         "_Cancel", GTK_RESPONSE_CANCEL,
+                                         NULL);
+
+    calendar = gtk_calendar_new();
+    gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), calendar, TRUE, TRUE, 0);
+
+    gtk_widget_show_all(dialog);
+
+    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_OK) {
+        guint year, month, day;
+        gtk_calendar_get_date(GTK_CALENDAR(calendar), &year, &month, &day);
+        char date_str[11];
+        sprintf(date_str, "%04d-%02d-%02d", year, month + 1, day);
+        if (is_end_date) {
+            gtk_button_set_label(GTK_BUTTON(end_date_button), date_str);
+        } else {
+            gtk_button_set_label(GTK_BUTTON(start_date_button), date_str);
+        }
+    }
+
+    gtk_widget_destroy(dialog);
+}
+
+// ---------- FILE OPERATIONS ----------
 void open_file(GtkWidget *widget, gpointer data) {
     GtkWidget *dialog;
     dialog = gtk_file_chooser_dialog_new("Open File",
@@ -255,6 +295,122 @@ void on_file_set(GtkFileChooserButton *chooser, gpointer user_data) {
     }
 }
 
+// ---------- SEARCHING ----------
+/* Funktion die bei Verwenden des Search-Buttons aufgerufen wird */
+void search_file(GtkWidget *widget, gpointer data) {
+    if (!valid_text_file_selected) {
+        gtk_label_set_text(GTK_LABEL(result_label), "Please select a valid text file before searching.");
+        return;
+    }
+
+    const gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file_chooser));
+    const gchar *search_text = gtk_entry_get_text(GTK_ENTRY(search_entry));
+    const gchar *filter_text = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(filter_combo));
+    const gchar *start_date_str = gtk_button_get_label(GTK_BUTTON(start_date_button));
+    const gchar *end_date_str = gtk_button_get_label(GTK_BUTTON(end_date_button));
+
+    int start_year, start_month, start_day;
+    int end_year, end_month, end_day;
+    int use_date_filter = 0;
+
+    if (strcmp(start_date_str, "Select Start Date") != 0 && strcmp(end_date_str, "Select End Date") != 0) {
+        sscanf(start_date_str, "%d-%d-%d", &start_year, &start_month, &start_day);
+        sscanf(end_date_str, "%d-%d-%d", &end_year, &end_month, &end_day);
+        use_date_filter = 1;
+    }
+
+    add_log_entry(g_strdup_printf("Searched in file for String \"%s\" with filter \"%s\"", search_text, filter_text));
+
+    if (filename == NULL) {
+        gtk_label_set_text(GTK_LABEL(result_label), "Please select a file.");
+        return;
+    }
+
+    if (strlen(search_text) == 0 && strcmp(filter_text, "No filter") == 0) {
+        gtk_label_set_text(GTK_LABEL(result_label), "Please enter search text or select a filter.");
+        return;
+    }
+
+
+
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        gtk_label_set_text(GTK_LABEL(result_label), "Error: Could not open file.");
+        return;
+    }
+
+    char line[1024];
+    int line_number = 0;
+    int found_count = 0;
+    GString *line_numbers = g_string_new("");
+    int numbers_in_current_line = 0;
+    found_line_numbers = g_array_new(FALSE, FALSE, sizeof(int));
+    found_line_contents = g_array_new(FALSE, TRUE, sizeof(char*));
+
+    while (fgets(line, sizeof(line), file)) {
+        line_number++;
+        gboolean line_matches = FALSE;
+
+        if (strcmp(filter_text, "No filter") == 0) {
+            line_matches = (strstr(line, search_text) != NULL);
+        } else {
+            line_matches = (strstr(line, search_text) != NULL && strstr(line, filter_text) != NULL);
+        }
+
+        if (line_matches && use_date_filter) {
+            int year, month, day;
+            if (parse_date(line, &year, &month, &day)) {
+                if (compare_dates(year, month, day, start_year, start_month, start_day) >= 0 &&
+                    compare_dates(year, month, day, end_year, end_month, end_day) <= 0) {
+                    // Date is within range, keep the match
+                } else {
+                    line_matches = FALSE;
+                }
+            }
+        }
+
+        if (line_matches) {
+            found_count++;
+            g_array_append_val(found_line_numbers, line_number);
+            char *line_copy = g_strdup(line);
+            g_array_append_val(found_line_contents, line_copy);
+            if (found_count > 1) {
+                if (numbers_in_current_line == 20) {
+                    g_string_append(line_numbers, "\n                : ");
+                    numbers_in_current_line = 0;
+                } else {
+                    g_string_append(line_numbers, ", ");
+                }
+            }
+            g_string_append_printf(line_numbers, "%d", line_number);
+            numbers_in_current_line++;
+        }
+    }
+
+    search_performed = TRUE;
+    fclose(file);
+
+    GString *result = g_string_new("");
+    if (found_count > 0) {
+        g_string_append_printf(result, "Found %d times\n", found_count);
+        g_string_append_printf(result, "Found in lines: %s", line_numbers->str);
+        gtk_label_set_text(GTK_LABEL(result_label), result->str);
+        add_log_entry(g_strdup_printf("Found %d times", found_count));
+        add_log_entry(g_strdup_printf("Found in lines: %s", line_numbers->str));
+    } else {
+        gtk_label_set_text(GTK_LABEL(result_label), "Text not found in the file.");
+    }
+
+    g_string_free(result, TRUE);
+    g_string_free(line_numbers, TRUE);
+
+    lines_displayed = FALSE;
+    displaying_full = FALSE;
+    lines_full_displayed = FALSE;
+
+    g_free((gchar*)filter_text);
+}
+
 void show_lines(GtkWidget *widget, gpointer data) {
     if (!search_performed) {
         gtk_label_set_text(GTK_LABEL(result_label), "Please perform a search first.");
@@ -295,61 +451,7 @@ void show_lines(GtkWidget *widget, gpointer data) {
     g_string_free(result, TRUE);
 }
 
-void cleanup() {
-    if (found_line_numbers) {
-        g_array_free(found_line_numbers, TRUE);
-    }
-    if (found_line_contents) {
-        for (int i = 0; i < found_line_contents->len; i++) {
-            g_free(g_array_index(found_line_contents, char*, i));
-        }
-        g_array_free(found_line_contents, TRUE);
-    }
-}
-
-void open_log(GtkWidget *widget, gpointer data) {
-    GtkWidget *dialog;
-    dialog = gtk_file_chooser_dialog_new("Open Log File",
-                                         GTK_WINDOW(window),
-                                         GTK_FILE_CHOOSER_ACTION_OPEN,
-                                         "_Cancel", GTK_RESPONSE_CANCEL,
-                                         "_Open", GTK_RESPONSE_ACCEPT,
-                                         NULL);
-
-    gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), "Logs");
-    gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog), gtk_file_filter_new());
-    GtkFileFilter *filter = gtk_file_filter_new();
-    gtk_file_filter_add_pattern(filter, "*.log");
-    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-
-    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-        char *filename;
-        filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-        
-        FILE *file = fopen(filename, "r");
-        if (file) {
-            fseek(file, 0, SEEK_END);
-            long fsize = ftell(file);
-            fseek(file, 0, SEEK_SET);
-
-            char *content = malloc(fsize + 1);
-            fread(content, 1, fsize, file);
-            fclose(file);
-
-            content[fsize] = 0;
-
-            gtk_label_set_text(GTK_LABEL(result_label), content);
-            free(content);
-        } else {
-            gtk_label_set_text(GTK_LABEL(result_label), "Error: Could not open log file.");
-        }
-        
-        g_free(filename);
-    }
-
-    gtk_widget_destroy(dialog);
-}
-
+// ---------- MAIN / GUI ----------
 GtkWidget* create_menu_bar() {
     GtkWidget *menu_bar;
     GtkWidget *file_menu;
@@ -440,6 +542,14 @@ int main(int argc, char *argv[]) {
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(filter_combo), "reply");
     gtk_combo_box_set_active(GTK_COMBO_BOX(filter_combo), 0);
     gtk_box_pack_start(GTK_BOX(vbox), filter_combo, FALSE, FALSE, 0);
+
+    start_date_button = gtk_button_new_with_label("Select Start Date");
+    g_signal_connect(start_date_button, "clicked", G_CALLBACK(show_calendar), GINT_TO_POINTER(0));
+    gtk_box_pack_start(GTK_BOX(vbox), start_date_button, FALSE, FALSE, 0);
+
+    end_date_button = gtk_button_new_with_label("Select End Date");
+    g_signal_connect(end_date_button, "clicked", G_CALLBACK(show_calendar), GINT_TO_POINTER(1));
+    gtk_box_pack_start(GTK_BOX(vbox), end_date_button, FALSE, FALSE, 0);
 
     search_button = gtk_button_new_with_label("Search in File");
     g_signal_connect(search_button, "clicked", G_CALLBACK(search_file), NULL);
