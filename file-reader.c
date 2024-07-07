@@ -1,4 +1,16 @@
-/* gtk/gtk für GUI, stdio für Dateioperationen, string für String-Manipulationen */
+/**    ____  __  _  _   __   __    ____    __     __    ___  ____  ____   __   ____  ____  ____ 
+ *    (  _ \(  )/ )( \ /  \ (  )  (  __)  (  )   /  \  / __)(  _ \(  __) / _\ (    \(  __)(  _ \
+ *     ) __/ )( ) __ ((  O )/ (_/\ ) _)   / (_/\(  O )( (_ \ )   / ) _) /    \ ) D ( ) _)  )   /
+ *    (__)  (__)\_)(_/ \__/ \____/(____)  \____/ \__/  \___/(__\_)(____)\_/\_/(____/(____)(__\_)
+ *
+ *  Programm zur Suche von Strings in PiHole-Logdateien.
+ *  Das Programm erlaubt die Verwendung von verschiedenen Filtern, wie Datum oder Ereignistyp.
+ *
+ *  Autor P. Kimmig
+*/
+
+
+// Imports GTK für GUI, stdio für Input/Output, string für String-Manipulationen, Magic für Textdateierkennung, time und sys/stat für Logs
 #include <gtk/gtk.h>
 #include <stdio.h>
 #include <string.h>
@@ -7,19 +19,25 @@
 #include <sys/stat.h>
 
 // ---------- VARIABLES -----------
-/* Globale Variablen für GUI Elemente */
+// Globale Variablen für GUI Elemente 
 GString *log_buffer;
 GtkWidget *window;
 GtkWidget *file_chooser;
 GtkWidget *search_entry;
 GtkWidget *search_button;
+GtkWidget *show_lines_button;
 GtkWidget *result_label;
 GtkWidget *vbox;
 GtkWidget *filter_combo;
 GtkWidget *start_date_button;
 GtkWidget *end_date_button;
+
+
+// Arrays für gefundene Zeilen/deren Inhalt
 GArray *found_line_numbers = NULL;
 GArray *found_line_contents = NULL;
+
+// Boolean-Variablen für Such-Logik
 gboolean search_performed = FALSE;
 gboolean lines_displayed = FALSE;
 gboolean lines_full_displayed = FALSE;
@@ -29,12 +47,7 @@ gboolean check_file(const char *filename);
 gboolean valid_text_file_selected = FALSE;
 
 // ---------- INIT ----------
-/***
- *     ____  __  _  _   __   __    ____    __     __    ___  ____  ____   __   ____  ____  ____ 
- *    (  _ \(  )/ )( \ /  \ (  )  (  __)  (  )   /  \  / __)(  _ \(  __) / _\ (    \(  __)(  _ \
- *     ) __/ )( ) __ ((  O )/ (_/\ ) _)   / (_/\(  O )( (_ \ )   / ) _) /    \ ) D ( ) _)  )   /
- *    (__)  (__)\_)(_/ \__/ \____/(____)  \____/ \__/  \___/(__\_)(____)\_/\_/(____/(____)(__\_)
- */
+// Methode zur Anzeige der Help Funktion in der MenuBar
 void help_info(GtkWidget *widget, gpointer data) {
     GString *result = g_string_new("");
     g_string_append_printf(result, "PiHole LogReader\n");
@@ -60,6 +73,7 @@ void help_info(GtkWidget *widget, gpointer data) {
     g_string_free(result, TRUE); 
 }
 
+// Methode um Inhalte der Suche nach der Durchführung freizugeben
 void cleanup() {
     if (found_line_numbers) {
         g_array_free(found_line_numbers, TRUE);
@@ -73,6 +87,7 @@ void cleanup() {
 }
 
 // ---------- LOG OPERATIONS ----------
+// Methode um Logdatei zu initialisieren
 void init_log() {
     log_buffer = g_string_new("");
     time_t now;
@@ -86,6 +101,7 @@ void init_log() {
     g_string_append_printf(log_buffer, "[%s] Application started.\n", timestamp);
 }
 
+// Methode um einen Logeintrag in das Log anzuhängen
 void add_log_entry(const char *action) {
     time_t now;
     struct tm *local;
@@ -98,6 +114,7 @@ void add_log_entry(const char *action) {
     g_string_append_printf(log_buffer, "[%s] %s\n", timestamp, action);
 }
 
+// Methode um Logdatei zu erstellen (ggf. auch Unterordner Logs)
 void create_log_file() {
     struct stat st = {0};
     if (stat("Logs", &st) == -1) {
@@ -122,6 +139,7 @@ void create_log_file() {
     }
 }
 
+// Methode um Inhalt einer gewählten Logdatei anzuzeigen
 void open_log(GtkWidget *widget, gpointer data) {
     GtkWidget *dialog;
     dialog = gtk_file_chooser_dialog_new("Open Log File",
@@ -166,6 +184,7 @@ void open_log(GtkWidget *widget, gpointer data) {
 }
 
 // ---------- FUNCTIONS ----------
+// Methode um 
 int parse_date(const char *date_str, int *year, int *month, int *day) {
     static const char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
@@ -258,7 +277,9 @@ void open_file(GtkWidget *widget, gpointer data) {
     gtk_widget_destroy(dialog);
 }
 
+// Funktion zur Überprüfung der ausgewählten Datei
 gboolean check_file(const char *filename) {
+    // Überprüfen ob Datei geöffnet werden kann
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
         gtk_label_set_text(GTK_LABEL(result_label), "Error: Could not open file.");
@@ -267,7 +288,7 @@ gboolean check_file(const char *filename) {
         return FALSE;
     }
 
-    // Check if it's a text file using libmagic
+    // Überprüfen ob es sich um eine Textdatei handelt
     magic_t magic = magic_open(MAGIC_MIME_TYPE);
     if (magic == NULL) {
         fclose(file);
@@ -286,6 +307,7 @@ gboolean check_file(const char *filename) {
         return FALSE;
     }
 
+    // Überprüfen des MIME-Typs
     const char *mime_type = magic_file(magic, filename);
     if (mime_type == NULL || strncmp(mime_type, "text/", 5) != 0) {
         magic_close(magic);
@@ -296,6 +318,7 @@ gboolean check_file(const char *filename) {
         return FALSE;
     }
 
+    // Schließen der Datei und Rückgabe des Ergebnisses
     magic_close(magic);
     fclose(file);
     gtk_label_set_text(GTK_LABEL(result_label), "File selected successfully.");
@@ -304,6 +327,7 @@ gboolean check_file(const char *filename) {
     return TRUE;
 }
 
+// Wenn Datei ausgewählt wird, Überprüfung starten
 void on_file_set(GtkFileChooserButton *chooser, gpointer user_data) {
     const char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(chooser));
     if (filename) {
@@ -312,8 +336,9 @@ void on_file_set(GtkFileChooserButton *chooser, gpointer user_data) {
 }
 
 // ---------- SEARCHING ----------
-/* Funktion die bei Verwenden des Search-Buttons aufgerufen wird */
+// Funktion zur Durchführung der Suche in der ausgewählten Datei
 void search_file(GtkWidget *widget, gpointer data) {
+    // Überprüfen ob gültige Texttdatei ausgewählt wurde
     if (!valid_text_file_selected) {
         gtk_label_set_text(GTK_LABEL(result_label), "Please select a valid text file before searching.");
         return;
@@ -564,34 +589,40 @@ GtkWidget* create_menu_bar() {
     return menu_bar;
 }
 
+// Hauptfunktion zur Initialisierung der GUI und Programmstart
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
     init_log();
 
+    // Erstellen des Hauptfensters und der GUI Elemente
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(window), "File Search");
     gtk_container_set_border_width(GTK_CONTAINER(window), 10);
     gtk_widget_set_size_request(window, 400, 300);
 
+    // Weitere GUI Elemente initialisieren
     vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     gtk_container_add(GTK_CONTAINER(window), vbox);
 
     GtkWidget *menu_bar = create_menu_bar();
     gtk_box_pack_start(GTK_BOX(vbox), menu_bar, FALSE, FALSE, 0);
 
+    // File-Chooser zur Dateiauswahl
     file_chooser = gtk_file_chooser_button_new("Select a File", GTK_FILE_CHOOSER_ACTION_OPEN);
     g_signal_connect(G_OBJECT(file_chooser), "file-set", G_CALLBACK(on_file_set), NULL);
     gtk_box_pack_start(GTK_BOX(vbox), file_chooser, FALSE, FALSE, 0);
 
-    // Add spacing between file chooser and text entry
+    // Abstand zwischen File-Chooser und Textfeld
     GtkWidget *spacing1 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 20);
     gtk_widget_set_size_request(spacing1, -1, 20);
     gtk_box_pack_start(GTK_BOX(vbox), spacing1, FALSE, FALSE, 0);
 
+    // Textfeld für Suche
     search_entry = gtk_entry_new();
     gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "Enter search text");
     gtk_box_pack_start(GTK_BOX(vbox), search_entry, FALSE, FALSE, 0);
 
+    // Drop-Down-Menü zur Filterauswahl
     filter_combo = gtk_combo_box_text_new();
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(filter_combo), "No filter");
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(filter_combo), "gravity blocked");
@@ -599,41 +630,50 @@ int main(int argc, char *argv[]) {
     gtk_combo_box_set_active(GTK_COMBO_BOX(filter_combo), 0);
     gtk_box_pack_start(GTK_BOX(vbox), filter_combo, FALSE, FALSE, 0);
 
+    // Datumsauswahl für Von-Zeitraum
     start_date_button = gtk_button_new_with_label("Select Start Date");
     g_signal_connect(start_date_button, "clicked", G_CALLBACK(show_calendar), GINT_TO_POINTER(0));
     gtk_box_pack_start(GTK_BOX(vbox), start_date_button, FALSE, FALSE, 0);
 
+    // Datumsauswahl für Bis-Zeitraum
     end_date_button = gtk_button_new_with_label("Select End Date");
     g_signal_connect(end_date_button, "clicked", G_CALLBACK(show_calendar), GINT_TO_POINTER(1));
     gtk_box_pack_start(GTK_BOX(vbox), end_date_button, FALSE, FALSE, 0);
 
-    // Add spacing between end date button and search button
+    // Abstand zwischen Datumsauswahl und Suchfunktionen
     GtkWidget *spacing2 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 20);
     gtk_widget_set_size_request(spacing2, -1, 20);
     gtk_box_pack_start(GTK_BOX(vbox), spacing2, FALSE, FALSE, 0);
 
+    // Suchbutton
     search_button = gtk_button_new_with_label("Search in File");
     g_signal_connect(search_button, "clicked", G_CALLBACK(search_file), NULL);
     gtk_box_pack_start(GTK_BOX(vbox), search_button, FALSE, FALSE, 0);
 
-    GtkWidget *show_lines_button = gtk_button_new_with_label("Show Lines");
+    // Zeilenanzeige
+    show_lines_button = gtk_button_new_with_label("Show Lines");
     g_signal_connect(show_lines_button, "clicked", G_CALLBACK(show_lines), NULL);
     gtk_box_pack_start(GTK_BOX(vbox), show_lines_button, FALSE, FALSE, 0);
 
+    // Textfeld für die Darstellung von Ergebnissen oder Hife
     result_label = gtk_label_new("");
     gtk_box_pack_start(GTK_BOX(vbox), result_label, FALSE, FALSE, 0);
 
+    // Verbinden der Signale mit den entsprechenden Funktionen
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(window, "destroy", G_CALLBACK(create_log_file), NULL);  // Create log file on exit
     g_signal_connect_swapped(window, "destroy", G_CALLBACK(g_string_free), log_buffer);
 
+    // Anzeigen aller Widgets
     gtk_widget_show_all(window);
 
     g_signal_connect(window, "destroy", G_CALLBACK(cleanup), NULL);
 
+    // Initialisieren von Ergebnissen
     found_line_numbers = g_array_new(FALSE, FALSE, sizeof(int));
     found_line_contents = g_array_new(FALSE, TRUE, sizeof(char*));
 
+    // Start der Hauptschleife
     gtk_main();
 
     return 0;
