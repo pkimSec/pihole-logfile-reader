@@ -1,2 +1,2 @@
 #!/bin/bash
-gcc -o file-search file-reader.c `pkg-config --cflags --libs gtk+-3.0` -lmagic
+gcc -o pihole-logreader pihole-logreader.c `pkg-config --cflags --libs gtk+-3.0` -lmagic
