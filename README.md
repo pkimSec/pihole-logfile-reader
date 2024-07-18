@@ -7,7 +7,7 @@
 ![GitHub License](https://img.shields.io/github/license/pkimsec/pihole-logfile-reader)
 
 
-A simple project in C that can be used to read through LogFiles and Search for Strings and apply different filters like "gravity blocked" or "reply" or search in specific time frames. The project uses a simple GTK GUI and has a Help Menu where every function is explained, if not self-explanatory.
+A simple project in C that can be used to read through PiHole-LogFiles and Search for Strings and apply different filters like "gravity blocked" or "reply" or search in specific time frames. The project uses a simple GTK GUI and has a Help Menu where every function is explained, if not self-explanatory.
  
 # Quick Start Demo
 
@@ -18,17 +18,23 @@ You can either use the latest pre-compiled version from the releases or compile 
  
 # Installation
 
-1. Clone the repo to your local machine:
+Step 1: Clone the repo to your local machine
+```
 git clone https://github.com/pkimSec/pihole-logfile-reader
-
-2. Go into the cloned directory
+```
+Step 2: Enter into the cloned directory
+```
 cd pihole-logfile-reader
-
-3. Install dependencies (Example on Arch Linux using pacman)
+```
+Step 3: Install dependencies using package manager (Example on Arch Linux using pacman)
+```
 sudo pacman -S - < dependencies
-
-4. Make compile-script executable 
+```
+Step 4: Make compile-script executable 
+```
 chmod +x compile.sh
-
-5. Run compile script
+```
+Step 5: Run compile script
+```
 ./compile.sh
+```
