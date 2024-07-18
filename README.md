@@ -11,7 +11,7 @@ A simple project in C that can be used to read through LogFiles and Search for S
  
 # Quick Start Demo
 
-![Demo Preview]![logreader](https://github.com/user-attachments/assets/dc25e994-33dc-47de-95b6-32b5cfbb30c7)
+[logreader](https://github.com/user-attachments/assets/dc25e994-33dc-47de-95b6-32b5cfbb30c7)
 
 
 You can either use the latest pre-compiled version from the releases or compile it yourself using gcc.
