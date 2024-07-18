@@ -1,11 +1,11 @@
                            
 # PiHole - LogReader
 
-[![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/navendu-pottekkat/awesome-readme?include_prereleases)](https://img.shields.io/github/v/release/navendu-pottekkat/awesome-readme?include_prereleases)
-[![GitHub last commit](https://img.shields.io/github/last-commit/navendu-pottekkat/awesome-readme)](https://img.shields.io/github/last-commit/navendu-pottekkat/awesome-readme)
-[![GitHub issues](https://img.shields.io/github/issues-raw/navendu-pottekkat/awesome-readme)](https://img.shields.io/github/issues-raw/navendu-pottekkat/awesome-readme)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/navendu-pottekkat/awesome-readme)](https://img.shields.io/github/issues-pr/navendu-pottekkat/awesome-readme)
-[![GitHub](https://img.shields.io/github/license/navendu-pottekkat/awesome-readme)](https://img.shields.io/github/license/navendu-pottekkat/awesome-readme)
+![GitHub Release](https://img.shields.io/github/v/release/pkimSec/pihole-logfile-reader?include_prereleases)
+![GitHub Issues or Pull Requests](https://img.shields.io/github/issues-raw/pkimsec/pihole-logfile-reader)
+![GitHub Issues or Pull Requests](https://img.shields.io/github/issues-pr/pkimsec/pihole-logfile-reader)
+![GitHub License](https://img.shields.io/github/license/pkimsec/pihole-logfile-reader)
+
 
 A simple project in C that can be used to read through LogFiles and Search for Strings and apply different filters like "gravity blocked" or "reply" or search in specific time frames. The project uses a simple GTK GUI and has a Help Menu where every function is explained, if not self-explanatory.
  
