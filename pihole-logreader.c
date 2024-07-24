@@ -5,10 +5,7 @@
  *
  *  Programm zur Suche von Strings in PiHole-Logdateien.
  *  Das Programm erlaubt die Verwendung von verschiedenen Filtern, wie Datum oder Ereignistyp.
- *
- *  Autor P. Kimmig
-*/
-
+ **/  
 
 // Imports GTK für GUI, stdio für Input/Output, string für String-Manipulationen, Magic für Textdateierkennung, time und sys/stat für Logs
 #include <gtk/gtk.h>
