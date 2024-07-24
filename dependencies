@@ -2,3 +2,4 @@ gcc
 gtk3
 pkgconf
 file
+json-c
